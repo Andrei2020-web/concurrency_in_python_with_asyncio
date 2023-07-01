@@ -18,7 +18,7 @@ def load_common_worlds() -> List[str]:
 
 
 def generate_brand_names(words: List[str]) -> List[Tuple[Union[str,]]]:
-    return [(words[index],) for index in sample(range(100), 100)]
+    return [(words[index],) for index in sample(range(1000), 100)]
 
 
 async def insert_brands(common_words, connection) -> int:
@@ -34,7 +34,7 @@ async def main():
         port=5432,
         user='postgres',
         database='products',
-        password='12345',
+        password='password',
     )
     await insert_brands(common_words, connection)
 
