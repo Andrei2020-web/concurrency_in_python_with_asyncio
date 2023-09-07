@@ -2,6 +2,7 @@
 Сервис backend-for-frontend для товаров
 '''
 import asyncio
+import functools
 from asyncio import Task
 import aiohttp
 from aiohttp import web, ClientSession
@@ -9,6 +10,7 @@ from aiohttp.web_response import Response
 from aiohttp.web_request import Request
 import logging
 from typing import Dict, Set, Awaitable, Optional, List
+from chapter10.listing_10_7 import retry
 
 routes = web.RouteTableDef()
 
@@ -21,9 +23,23 @@ CART_BASE = 'http://127.0.0.1:8003'
 @routes.get('/products/all')
 async def all_products(request: Request) -> Response:
     async with aiohttp.ClientSession() as session:
-        products = asyncio.create_task(session.get(f'{PRODUCT_BASE}/products'))
-        favorites = asyncio.create_task(session.get(f'{FAVORITE_BASE}/users/3/favorites'))
-        cart = asyncio.create_task(session.get(session.get(f'{CART_BASE}/users/3/cart')))
+        product_request = functools.partial(session.get, f'{PRODUCT_BASE}/products')
+        favorite_request = functools.partial(
+            session.get, f'{FAVORITE_BASE}/users/3/favorites')
+        cart_request = functools.partial(
+            session.get, f'{CART_BASE}/users/3/cart')
+        products = asyncio.create_task(retry(product_request,
+                                             max_retries=3,
+                                             timeout=0.1,
+                                             retry_interval=0.1))
+        favorites = asyncio.create_task(retry(favorite_request,
+                                              max_retries=3,
+                                              timeout=0.1,
+                                              retry_interval=0.1))
+        cart = asyncio.create_task(retry(cart_request,
+                                         max_retries=3,
+                                         timeout=0.1,
+                                         retry_interval=0.1))
 
         requests = [products, favorites, cart]
         # Создать задачи для опроса всех трех сервисов и запустить их конкурентно
